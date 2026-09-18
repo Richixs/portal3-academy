@@ -15,7 +15,7 @@ RUN curl -fsSL https://github.com/kevinoid/postgresql-for-wordpress/archive/refs
 # ==============================================================================
 # ETAPA 2: Imagen final de producción (oficial WordPress, Debian + Apache)
 # ==============================================================================
-FROM wordpress:7.1.1-php8.3-apache AS runner
+FROM wordpress:7.1.0-php8.3-apache AS runner
 
 ENV WP_ENVIRONMENT_TYPE=production \
     PHP_INI_DIR=/usr/local/etc/php
