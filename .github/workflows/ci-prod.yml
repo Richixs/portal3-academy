@@ -8,7 +8,7 @@ on:
       - .dockerignore
       - src/**
       - .github/workflows/ci-prod.yml
-
+  workflow_dispatch:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}

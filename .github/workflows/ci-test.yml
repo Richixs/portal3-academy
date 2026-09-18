@@ -8,6 +8,7 @@ on:
       - .dockerignore
       - src/**
       - .github/workflows/ci-test.yml
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
