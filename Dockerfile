@@ -7,9 +7,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl unzip && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://github.com/kevinoid/postgresql-for-wordpress/archive/refs/heads/master.zip -o /tmp/pg4wp.zip && \
+RUN curl -fsSL https://github.com/PostgreSQL-For-Wordpress/postgresql-for-wordpress/archive/refs/heads/v3.zip -o /tmp/pg4wp.zip && \
     unzip -q /tmp/pg4wp.zip -d /tmp/ && \
-    mv /tmp/postgresql-for-wordpress-master/pg4wp /tmp/pg4wp_final && \
+    mv /tmp/postgresql-for-wordpress-3/pg4wp /tmp/pg4wp_final && \
     rm -f /tmp/pg4wp.zip
 
 # ==============================================================================
