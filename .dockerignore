@@ -1,0 +1,12 @@
+.git
+**/.git
+.github
+.gitignore
+.gitattributes
+.dockerignore
+README.md
+*.md
+k8s
+.DS_Store
+.vscode
+.idea

@@ -1,0 +1,91 @@
+name: Build & Deploy (test)
+
+on:
+  push:
+    branches: [test]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - src/**
+      - .github/workflows/ci-test.yml
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  ENVIRONMENT: test
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: test
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+      image_name: ${{ steps.meta.outputs.image }}
+    steps:
+      - name: Checkout (con submódulos)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Si src/plugins/unlock-wordpress-plugin fuera privado, agrega:
+          # token: ${{ secrets.SUBMODULE_TOKEN }}
+
+      - name: Set image tag
+        id: meta
+        run: |
+          echo "tag=${ENVIRONMENT}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.image }}:test-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-deploy-repo:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      IMAGE_TAG: ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image_name }}:${{ needs.build-and-push.outputs.image_tag }}
+      DEPLOY_REPO_URL: ${{ vars.DEPLOY_REPO_URL || 'lab.sasxr.com/s-system/deploy.git' }}
+    steps:
+      - name: Clone deploy repo
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          git clone "https://oauth2:${DEPLOY_TOKEN}@${DEPLOY_REPO_URL}" deploy
+
+      - name: Set test overlay image with kustomize
+        working-directory: deploy/k8s/apps/portal3-academy/overlays/test
+        run: |
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz" | tar xz
+          ./kustomize edit set image portal3-academy-app="${IMAGE_TAG}"
+          rm -f kustomize
+
+      - name: Commit and push
+        working-directory: deploy
+        run: |
+          git config user.email "github-actions@sasxr.com"
+          git config user.name "GitHub Actions"
+          git add k8s/apps/portal3-academy/overlays/test/kustomization.yaml
+          git diff --cached --quiet || git commit -m "Update portal3-academy TEST image to ${GITHUB_SHA::7}"
+          git push origin main

@@ -1,0 +1,3 @@
+[submodule "src/plugins/unlock-wordpress-plugin"]
+	path = src/plugins/unlock-wordpress-plugin
+	url = https://github.com/Richixs/unlock-wordpress-plugin.git
